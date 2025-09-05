@@ -65,7 +65,7 @@
         .controls button:hover {
             background-color: #1ed760;
         }
-        
+
         .controls button:disabled {
             background-color: #555;
             color: #999;
@@ -110,7 +110,7 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        
+
         select {
             background-color: var(--grid-cell-color);
             color: var(--text-color);
@@ -148,11 +148,11 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         .track-label input[type="file"] {
             display: none;
         }
-        
+
         .track-label .load-button {
             font-size: 12px;
             padding: 5px 8px;
@@ -187,7 +187,7 @@
         .sequencer-cell.current {
             background-color: var(--grid-cell-active-color);
         }
-        
+
         .sequencer-cell.current.on {
             background-color: #88d8a2;
         }
@@ -281,7 +281,7 @@
                 oscGain.gain.setValueAtTime(0.7, 0);
                 oscGain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.1);
                 osc.connect(oscGain).connect(offlineCtx.destination);
-                
+
                 noiseSource.start(0);
                 osc.start(0);
                 noiseSource.stop(offlineCtx.currentTime + 0.2);
@@ -321,7 +321,7 @@
                 for (let i = 0; i < bufferSize; i++) {
                     output[i] = Math.random() * 2 - 1;
                 }
-                
+
                 const noiseGain = offlineCtx.createGain();
                 noiseGain.gain.setValueAtTime(1, 0.001);
                 noiseGain.gain.exponentialRampToValueAtTime(0.4, offlineCtx.currentTime + 0.02);
@@ -451,7 +451,7 @@
                         trackVolumes[trackIndex] = parseFloat(e.target.value);
                     });
                 });
-                
+
                 document.querySelectorAll('.filter-slider').forEach(slider => {
                     slider.addEventListener('input', (e) => {
                         const trackIndex = parseInt(e.target.dataset.trackIndex, 10);
@@ -526,7 +526,7 @@
                     }
                 }
             }
-            
+
             function updateUIForStep() {
                 const prevStep = (currentStep === 0) ? NUM_STEPS - 1 : currentStep - 1;
                 document.querySelectorAll(`.sequencer-cell[data-step="${prevStep}"]`).forEach(cell => cell.classList.remove('current'));
