@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Collective</title>
+    <style>
+        :root {
+            --background-color: #181818;
+            --surface-color: #282828;
+            --primary-color: #1DB954;
+            --text-color: #FFFFFF;
+            --text-secondary-color: #b3b3b3;
+            --grid-cell-color: #404040;
+            --grid-cell-active-color: #606060;
+            --grid-cell-on-color: var(--primary-color);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 10px 20px;
+            min-width: 100px; /* Ensure button width doesn't change drastically */
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .controls button:hover {
+            background-color: #1ed760;
+        }
+        
+        .controls button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-size: 14px;
+            color: var(--text-secondary-color);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--grid-cell-color);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        select {
+            background-color: var(--grid-cell-color);
+            color: var(--text-color);
+            border: 1px solid var(--background-color);
+            border-radius: 4px;
+            padding: 5px;
+            font-family: var(--font-family);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+
+        .track-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .track {
+            display: grid;
+            grid-template-columns: 120px repeat(4, 1fr);
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background-color: var(--background-color);
+            border-radius: 4px;
+        }
+
+        .track-label {
+            font-size: 14px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .track-label input[type="file"] {
+            display: none;
+        }
+        
+        .track-label .load-button {
+            font-size: 12px;
+            padding: 5px 8px;
+            margin-top: 5px;
+            display: block;
+            background-color: var(--grid-cell-color);
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .sequencer-grid {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 5px;
+            flex-grow: 1;
+        }
+
+        .sequencer-cell {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: var(--grid-cell-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .sequencer-cell.on {
+            background-color: var(--grid-cell-on-color);
+        }
+
+        .sequencer-cell.current {
+            background-color: var(--grid-cell-active-color);
+        }
+        
+        .sequencer-cell.current.on {
+            background-color: #88d8a2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h1>Sound Collective</h1>
+        <div class="controls">
+            <button id="play-stop-btn">Play</button>
+            <div class="control-group">
+                <label for="tempo-slider">Tempo</label>
+                <input type="range" id="tempo-slider" min="60" max="240" value="120">
+                <span id="tempo-display">120 BPM</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="track-controls" id="track-controls"></div>
+            <div class="sequencer-grid" id="sequencer-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const NUM_TRACKS = 4;
+            const NUM_STEPS = 16;
+            const defaultTrackNames = ["Kick", "Snare", "Hi-Hat", "Clap"];
+
+            let audioContext;
+            let isInitialized = false;
+            let sequencerState = Array(NUM_TRACKS).fill(0).map(() => Array(NUM_STEPS).fill(false));
+            let audioBuffers = Array(NUM_TRACKS).fill(null);
+            let trackVolumes = Array(NUM_TRACKS).fill(0.8);
+            let trackFilters = Array(NUM_TRACKS).fill(20000);
+            let trackFilterTypes = Array(NUM_TRACKS).fill('lowpass');
+
+            let currentStep = 0;
+            let isPlaying = false;
+            let tempo = 120;
+            let scheduler;
+
+            const playStopBtn = document.getElementById('play-stop-btn');
+            const tempoSlider = document.getElementById('tempo-slider');
+            const tempoDisplay = document.getElementById('tempo-display');
+            const trackControlsContainer = document.getElementById('track-controls');
+            const sequencerGridContainer = document.getElementById('sequencer-grid');
+
+            // --- Sound Synthesis Functions ---
+            async function createKick(context) {
+                const duration = 0.5;
+                const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
+                const osc = offlineCtx.createOscillator();
+                const gain = offlineCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, 0);
+                osc.frequency.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(1, 0);
+                gain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(offlineCtx.destination);
+                osc.start(0);
+                osc.stop(offlineCtx.currentTime + 0.4);
+                return await offlineCtx.startRendering();
+            }
+
+            async function createSnare(context) {
+                const duration = 0.5;
+                const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
+                const bufferSize = offlineCtx.sampleRate * duration;
+                const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, offlineCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const noiseSource = offlineCtx.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                const noiseFilter = offlineCtx.createBiquadFilter();
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.value = 1000;
+                const noiseGain = offlineCtx.createGain();
+                noiseGain.gain.setValueAtTime(1, 0);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.2);
+                noiseSource.connect(noiseFilter).connect(noiseGain).connect(offlineCtx.destination);
+
+                const osc = offlineCtx.createOscillator();
+                osc.type = 'triangle';
+                osc.frequency.value = 100;
+                const oscGain = offlineCtx.createGain();
+                oscGain.gain.setValueAtTime(0.7, 0);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.1);
+                osc.connect(oscGain).connect(offlineCtx.destination);
+                
+                noiseSource.start(0);
+                osc.start(0);
+                noiseSource.stop(offlineCtx.currentTime + 0.2);
+                osc.stop(offlineCtx.currentTime + 0.2);
+                return await offlineCtx.startRendering();
+            }
+
+            async function createHiHat(context) {
+                const duration = 0.5;
+                const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
+                const bufferSize = offlineCtx.sampleRate * duration;
+                const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, offlineCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const noiseSource = offlineCtx.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                const noiseFilter = offlineCtx.createBiquadFilter();
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.value = 7000;
+                const noiseGain = offlineCtx.createGain();
+                noiseGain.gain.setValueAtTime(1, 0);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.05);
+                noiseSource.connect(noiseFilter).connect(noiseGain).connect(offlineCtx.destination);
+                noiseSource.start(0);
+                noiseSource.stop(offlineCtx.currentTime + 0.05);
+                return await offlineCtx.startRendering();
+            }
+
+            async function createClap(context) {
+                const duration = 1.0;
+                const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
+                const bufferSize = offlineCtx.sampleRate * duration;
+                const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, offlineCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                
+                const noiseGain = offlineCtx.createGain();
+                noiseGain.gain.setValueAtTime(1, 0.001);
+                noiseGain.gain.exponentialRampToValueAtTime(0.4, offlineCtx.currentTime + 0.02);
+                noiseGain.gain.setValueAtTime(1, 0.021);
+                noiseGain.gain.exponentialRampToValueAtTime(0.4, offlineCtx.currentTime + 0.04);
+                noiseGain.gain.setValueAtTime(1, 0.041);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.2);
+
+                const filter = offlineCtx.createBiquadFilter();
+                filter.type = "bandpass";
+                filter.frequency.value = 1500;
+
+                const noiseSource = offlineCtx.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                noiseSource.connect(filter).connect(noiseGain).connect(offlineCtx.destination);
+                noiseSource.start(0);
+
+                return await offlineCtx.startRendering();
+            }
+
+            async function createDefaultSamples() {
+                if (!audioContext) return;
+                console.log("Creating default samples...");
+                try {
+                    const [kick, snare, hihat, clap] = await Promise.all([
+                        createKick(audioContext),
+                        createSnare(audioContext),
+                        createHiHat(audioContext),
+                        createClap(audioContext)
+                    ]);
+                    audioBuffers[0] = kick;
+                    audioBuffers[1] = snare;
+                    audioBuffers[2] = hihat;
+                    audioBuffers[3] = clap;
+                    console.log("Default samples created.");
+                } catch (e) {
+                    console.error("Failed to create default samples:", e);
+                    alert("Could not create default sounds. You can still load your own samples.");
+                }
+            }
+
+            function initAudioContext() {
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log("AudioContext created successfully.");
+                    } catch (e) {
+                        alert('Web Audio API is not supported in this browser');
+                        console.error(e);
+                    }
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            }
+
+            function createUI() {
+                for (let i = 0; i < NUM_TRACKS; i++) {
+                    const trackEl = document.createElement('div');
+                    trackEl.classList.add('track');
+                    trackEl.innerHTML = `
+                        <div class="track-label">
+                            <span id="track-name-${i}">${defaultTrackNames[i]}</span>
+                            <label class="load-button">Load
+                                <input type="file" class="load-sample-input" data-track-index="${i}" accept="audio/*">
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>Vol</label>
+                            <input type="range" class="volume-slider" data-track-index="${i}" min="0" max="1" step="0.01" value="${trackVolumes[i]}">
+                        </div>
+                        <div class="control-group">
+                            <label>Freq</label>
+                            <input type="range" class="filter-slider" data-track-index="${i}" min="100" max="20000" step="10" value="${trackFilters[i]}">
+                        </div>
+                        <div class="control-group">
+                            <label>Type</label>
+                            <select class="filter-type-select" data-track-index="${i}">
+                                <option value="lowpass" selected>Low-Pass</option>
+                                <option value="highpass">High-Pass</option>
+                            </select>
+                        </div>
+                    `;
+                    trackControlsContainer.appendChild(trackEl);
+                }
+
+                for (let i = 0; i < NUM_TRACKS; i++) {
+                    for (let j = 0; j < NUM_STEPS; j++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('sequencer-cell');
+                        cell.dataset.track = i;
+                        cell.dataset.step = j;
+                        sequencerGridContainer.appendChild(cell);
+                    }
+                }
+            }
+
+            function setupEventListeners() {
+                playStopBtn.addEventListener('click', handlePlayClick);
+
+                tempoSlider.addEventListener('input', (e) => {
+                    tempo = parseInt(e.target.value, 10);
+                    tempoDisplay.textContent = `${tempo} BPM`;
+                    if (isPlaying) {
+                        clearInterval(scheduler);
+                        const secondsPerStep = (60.0 / tempo) / 4;
+                        scheduler = setInterval(nextStep, secondsPerStep * 1000);
+                    }
+                });
+
+                sequencerGridContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('sequencer-cell')) {
+                        const track = parseInt(e.target.dataset.track, 10);
+                        const step = parseInt(e.target.dataset.step, 10);
+                        sequencerState[track][step] = !sequencerState[track][step];
+                        e.target.classList.toggle('on', sequencerState[track][step]);
+                    }
+                });
+
+                document.querySelectorAll('.load-sample-input').forEach(input => {
+                    input.addEventListener('change', (e) => loadSample(e));
+                });
+
+                document.querySelectorAll('.volume-slider').forEach(slider => {
+                    slider.addEventListener('input', (e) => {
+                        const trackIndex = parseInt(e.target.dataset.trackIndex, 10);
+                        trackVolumes[trackIndex] = parseFloat(e.target.value);
+                    });
+                });
+                
+                document.querySelectorAll('.filter-slider').forEach(slider => {
+                    slider.addEventListener('input', (e) => {
+                        const trackIndex = parseInt(e.target.dataset.trackIndex, 10);
+                        trackFilters[trackIndex] = parseFloat(e.target.value);
+                    });
+                });
+
+                document.querySelectorAll('.filter-type-select').forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        const trackIndex = parseInt(e.target.dataset.trackIndex, 10);
+                        trackFilterTypes[trackIndex] = e.target.value;
+                    });
+                });
+            }
+
+            async function handlePlayClick() {
+                if (!isInitialized) {
+                    playStopBtn.disabled = true;
+                    playStopBtn.textContent = 'Loading...';
+                    initAudioContext();
+                    await createDefaultSamples();
+                    isInitialized = true;
+                    playStopBtn.disabled = false;
+                }
+                togglePlayback();
+            }
+
+            async function loadSample(event) {
+                const file = event.target.files[0];
+                if (!file || !audioContext) return;
+
+                const trackIndex = parseInt(event.target.dataset.trackIndex, 10);
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    try {
+                        const buffer = await audioContext.decodeAudioData(e.target.result);
+                        audioBuffers[trackIndex] = buffer;
+                        document.getElementById(`track-name-${trackIndex}`).textContent = file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name;
+                        console.log(`Sample loaded for track ${trackIndex + 1}`);
+                    } catch (err) {
+                        alert(`Error decoding audio file: ${err.message}`);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            function playSound(trackIndex, time) {
+                if (!audioBuffers[trackIndex] || !audioContext) return;
+
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffers[trackIndex];
+
+                const filter = audioContext.createBiquadFilter();
+                filter.type = trackFilterTypes[trackIndex];
+                filter.frequency.setValueAtTime(trackFilters[trackIndex], time);
+
+                const gain = audioContext.createGain();
+                gain.gain.setValueAtTime(trackVolumes[trackIndex], time);
+
+                source.connect(filter).connect(gain).connect(audioContext.destination);
+                source.start(time);
+            }
+
+            function scheduleNextStep() {
+                const lookahead = 0.1; // seconds
+                const scheduleTime = audioContext.currentTime + lookahead;
+
+                for (let track = 0; track < NUM_TRACKS; track++) {
+                    if (sequencerState[track][currentStep]) {
+                        playSound(track, scheduleTime);
+                    }
+                }
+            }
+            
+            function updateUIForStep() {
+                const prevStep = (currentStep === 0) ? NUM_STEPS - 1 : currentStep - 1;
+                document.querySelectorAll(`.sequencer-cell[data-step="${prevStep}"]`).forEach(cell => cell.classList.remove('current'));
+                document.querySelectorAll(`.sequencer-cell[data-step="${currentStep}"]`).forEach(cell => cell.classList.add('current'));
+            }
+
+            function nextStep() {
+                updateUIForStep();
+                scheduleNextStep();
+                currentStep = (currentStep + 1) % NUM_STEPS;
+            }
+
+            function togglePlayback() {
+                isPlaying = !isPlaying;
+
+                if (isPlaying) {
+                    playStopBtn.textContent = 'Stop';
+                    currentStep = 0;
+                    const secondsPerStep = (60.0 / tempo) / 4;
+                    nextStep();
+                    scheduler = setInterval(nextStep, secondsPerStep * 1000);
+                } else {
+                    playStopBtn.textContent = 'Play';
+                    clearInterval(scheduler);
+                    const lastStep = (currentStep === 0) ? NUM_STEPS - 1 : currentStep - 1;
+                    document.querySelectorAll(`.sequencer-cell[data-step="${lastStep}"]`).forEach(cell => cell.classList.remove('current'));
+                }
+            }
+
+            // --- Initialize ---
+            createUI();
+            setupEventListeners();
+        });
+    </script>
+
+</body>
+</html>
