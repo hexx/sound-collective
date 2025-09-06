@@ -22,3 +22,9 @@ make all cells have the same design as row-odd
 The top and bottom appear stretched out, so make the track controls (on the left) shorter vertically and longer horizontally.
 
 the track controls (on the left) are too narrow and difficult to use - please reposition them lower down for easier access.Place an icon or something where the track controls (on the left) were previously located to make it more intuitive.
+
+What features could we add to this application by leveraging the Gemini API?
+
+Try creating your own 1. AI-Powered Pattern Generation.
+
+Wouldn't allowing users to input their Gemini API Key and using https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro enable them to use the Gemini API?

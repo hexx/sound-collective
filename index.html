@@ -227,6 +227,74 @@
             align-items: center;
         }
 
+        .ai-prompt-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        #ai-prompt-input {
+            flex-grow: 1;
+            height: 40px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--grid-cell-color);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            resize: vertical;
+            font-size: 14px;
+        }
+
+        #ai-submit-btn {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #ai-submit-btn:hover {
+            background-color: #1ed760;
+        }
+
+        .api-key-container {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #api-key-input {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--grid-cell-color);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+        }
+
+        #save-api-key-btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            background-color: var(--grid-cell-color);
+            color: var(--text-secondary-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #save-api-key-btn:hover {
+            background-color: var(--grid-cell-active-color);
+            color: var(--text-color);
+        }
+
     </style>
 </head>
 <body>
@@ -235,11 +303,21 @@
         <h1>Sound Collective</h1>
         <div class="controls">
             <button id="play-stop-btn"></button>
+            <button id="ai-generate-btn">Generate with AI ✨</button>
             <div class="tempo-control-group">
                 <label for="tempo-slider">Tempo</label>
                 <input type="range" id="tempo-slider" min="60" max="240" value="120">
                 <span id="tempo-display">120 BPM</span>
             </div>
+        </div>
+
+        <div class="ai-prompt-container" id="ai-prompt-container" style="display: none;">
+            <div class="api-key-container">
+                <input type="password" id="api-key-input" placeholder="Enter your Gemini API Key here">
+                <button id="save-api-key-btn">Save Key</button>
+            </div>
+            <textarea id="ai-prompt-input" placeholder="e.g., a fast, complex trap hi-hat pattern with some triplets"></textarea>
+            <button id="ai-submit-btn">Generate</button>
         </div>
 
         <div class="main-content" id="main-content"></div>
@@ -253,11 +331,11 @@
             const defaultTrackNames = ["Kick", "Snare", "Hi-Hat", "Clap"];
 
             const ICONS = {
-                play: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
-                stop: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="6" y="6" width="12" height="12"></rect></svg>`,
-                volume: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`,
-                filter: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>`,
-                upload: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
+                play: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`, 
+                stop: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="6" y="6" width="12" height="12"></rect></svg>`, 
+                volume: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`, 
+                filter: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>`, 
+                upload: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`, 
                 soundwave: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M2 10h3v4H2zm5-4h3v12H7zm5-6h3v20h-3zm5 4h3v12h-3zm5-4h3v4h-3z"/></svg>`
             };
 
@@ -279,6 +357,12 @@
             const tempoDisplay = document.getElementById('tempo-display');
             const mainContentContainer = document.getElementById('main-content');
             const trackControlsContainer = document.getElementById('track-controls-container');
+            const aiGenerateBtn = document.getElementById('ai-generate-btn');
+            const aiPromptContainer = document.getElementById('ai-prompt-container');
+            const apiKeyInput = document.getElementById('api-key-input');
+            const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+            const aiPromptInput = document.getElementById('ai-prompt-input');
+            const aiSubmitBtn = document.getElementById('ai-submit-btn');
 
             // --- Sound Synthesis Functions (unchanged) ---
             async function createKick(context) {
@@ -479,6 +563,25 @@
             function setupAllEventListeners() {
                 playStopBtn.addEventListener('click', handlePlayClick);
 
+                aiGenerateBtn.addEventListener('click', () => {
+                    const isHidden = aiPromptContainer.style.display === 'none';
+                    aiPromptContainer.style.display = isHidden ? 'block' : 'none';
+                });
+
+                saveApiKeyBtn.addEventListener('click', () => {
+                    const apiKey = apiKeyInput.value.trim();
+                    if (apiKey) {
+                        sessionStorage.setItem('gemini-api-key', apiKey);
+                        alert('API Key saved for this session.');
+                        apiKeyInput.value = '';
+                        apiKeyInput.placeholder = 'Key Saved!';
+                    } else {
+                        alert('Please enter a valid API key.');
+                    }
+                });
+
+                aiSubmitBtn.addEventListener('click', handleAIGenerate);
+
                 tempoSlider.addEventListener('input', (e) => {
                     tempo = parseInt(e.target.value, 10);
                     tempoDisplay.textContent = `${tempo} BPM`;
@@ -522,6 +625,89 @@
                         trackFilterTypes[trackIndex] = e.target.value;
                     });
                 });
+            }
+
+            function updateGridFromState() {
+                for (let i = 0; i < NUM_TRACKS; i++) {
+                    for (let j = 0; j < NUM_STEPS; j++) {
+                        const cell = document.querySelector(`.sequencer-cell[data-track='${i}'][data-step='${j}']`);
+                        if (cell) {
+                            cell.classList.toggle('on', sequencerState[i][j]);
+                        }
+                    }
+                }
+            }
+
+            async function handleAIGenerate() {
+                const apiKey = sessionStorage.getItem('gemini-api-key');
+                if (!apiKey) {
+                    alert('Please enter and save your Gemini API Key first.');
+                    return;
+                }
+
+                const userPrompt = aiPromptInput.value.trim();
+                if (!userPrompt) {
+                    alert('Please enter a description for the beat you want to generate.');
+                    return;
+                }
+
+                aiSubmitBtn.disabled = true;
+                aiSubmitBtn.textContent = 'Generating...';
+
+                const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const systemPrompt = `You are an expert drum machine programmer. Your task is to generate a 16-step sequencer pattern based on the user's description. The application has 4 tracks: 'kick', 'snare', 'hiHat', and 'clap'. Please provide the output ONLY as a valid JSON object. The object must have keys named 'kick', 'snare', 'hiHat', and 'clap'. Each key's value must be an array of exactly 16 booleans (true for an active step, false for an inactive step). Do not include any other text, explanations, or markdown formatting in your response. Just the raw JSON. User's description: '${userPrompt}'`;
+
+                try {
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: systemPrompt
+                                }]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API Error (${response.status}): ${errorData.error.message}`);
+                    }
+
+                    const data = await response.json();
+                    const jsonString = data.candidates[0].content.parts[0].text;
+                    const match = jsonString.match(/```json\n([\s\S]*)\n```/);
+                    let cleanedJsonString;
+                    if (match) {
+                        cleanedJsonString = match[1];
+                    } else {
+                        cleanedJsonString = jsonString;
+                    }
+
+                    const pattern = JSON.parse(cleanedJsonString);
+
+                    if (!pattern.kick || !pattern.snare || !pattern.hiHat || !pattern.clap) {
+                        throw new Error("The AI response was missing one or more required tracks.");
+                    }
+
+                    sequencerState[0] = pattern.kick;
+                    sequencerState[1] = pattern.snare;
+                    sequencerState[2] = pattern.hiHat;
+                    sequencerState[3] = pattern.clap;
+
+                    updateGridFromState();
+                    aiPromptContainer.style.display = 'none';
+
+                } catch (error) {
+                    console.error('Generation failed:', error);
+                    alert(`Failed to generate pattern: ${error.message}`);
+                } finally {
+                    aiSubmitBtn.disabled = false;
+                    aiSubmitBtn.textContent = 'Generate';
+                }
             }
 
             function updatePlayButton(state) {
