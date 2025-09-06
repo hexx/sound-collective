@@ -8,3 +8,17 @@ Add some default sounds.
 Can the Play button and Start button be made identical? If not, please explain the reason.
 
 The behavior of each filter is unclear. Please make it more understandable.
+
+Is the screen design too centered on the right? If it is, please make the necessary corrections.
+
+Now the correspondence between the track controls (on the left) and the sequencer grid (on the right) has become difficult to see. Please make the necessary corrections.
+
+Make it more understandable by using icons and other visual elements throughout the document.
+
+The top and bottom appear stretched out, so make the track controls (on the left) shorter vertically and longer horizontally.
+
+make all cells have the same design as row-odd
+
+The top and bottom appear stretched out, so make the track controls (on the left) shorter vertically and longer horizontally.
+
+the track controls (on the left) are too narrow and difficult to use - please reposition them lower down for easier access.Place an icon or something where the track controls (on the left) were previously located to make it more intuitive.

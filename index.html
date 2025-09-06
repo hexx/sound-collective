@@ -14,6 +14,7 @@
             --grid-cell-color: #404040;
             --grid-cell-active-color: #606060;
             --grid-cell-on-color: var(--primary-color);
+            --row-alt-color: rgba(0, 0, 0, 0.2);
             --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
@@ -55,10 +56,14 @@
             color: var(--text-color);
             border: none;
             padding: 10px 20px;
-            min-width: 100px; /* Ensure button width doesn't change drastically */
+            min-width: 110px;
             border-radius: 50px;
             font-size: 16px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             transition: background-color 0.2s, color 0.2s;
         }
 
@@ -72,15 +77,31 @@
             cursor: not-allowed;
         }
 
+        .tempo-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .tempo-control-group label {
+            font-size: 12px;
+            color: var(--text-secondary-color);
+            text-transform: uppercase;
+        }
+
         .control-group {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .control-group label {
-            font-size: 14px;
+        .icon {
+            width: 1.2em;
+            height: 1.2em;
             color: var(--text-secondary-color);
+            flex-shrink: 0;
         }
 
         input[type="range"] {
@@ -118,63 +139,58 @@
             border-radius: 4px;
             padding: 5px;
             font-family: var(--font-family);
+            width: 100%;
         }
 
         .main-content {
-            display: flex;
-            gap: 20px;
+            display: grid;
+            grid-template-columns: 1fr repeat(16, 1fr);
+            gap: 5px;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
-        .track-controls {
+        .track-header {
+            padding: 10px;
+            border-radius: 4px;
+            background-color: var(--row-alt-color);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-
-        .track {
-            display: grid;
-            grid-template-columns: 120px repeat(4, 1fr);
             align-items: center;
-            gap: 15px;
-            padding: 10px;
-            background-color: var(--background-color);
-            border-radius: 4px;
+            justify-content: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            height: 100%;
         }
 
-        .track-label {
-            font-size: 14px;
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .track-header .icon {
+            width: 1.5em;
+            height: 1.5em;
+        }
+
+        .load-button {
+            padding: 6px;
+            background-color: var(--grid-cell-color);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary-color);
+            display: flex;
+            align-items: center;
+        }
+        .load-button:hover {
+            color: var(--text-color);
         }
 
         .track-label input[type="file"] {
             display: none;
         }
 
-        .track-label .load-button {
-            font-size: 12px;
-            padding: 5px 8px;
-            margin-top: 5px;
-            display: block;
-            background-color: var(--grid-cell-color);
-            border-radius: 4px;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .sequencer-grid {
-            display: grid;
-            grid-template-columns: repeat(16, 1fr);
-            gap: 5px;
-            flex-grow: 1;
-        }
-
         .sequencer-cell {
             width: 100%;
             aspect-ratio: 1 / 1;
-            background-color: var(--grid-cell-color);
+            background-color: var(--row-alt-color);
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.1s;
@@ -185,12 +201,32 @@
         }
 
         .sequencer-cell.current {
-            background-color: var(--grid-cell-active-color);
+            box-shadow: inset 0 0 0 2px var(--text-secondary-color);
         }
 
-        .sequencer-cell.current.on {
-            background-color: #88d8a2;
+        .track-controls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
+
+        .track-control-panel {
+            background-color: var(--row-alt-color);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .track-control-panel .track-label {
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
     </style>
 </head>
 <body>
@@ -198,18 +234,16 @@
     <div class="app-container">
         <h1>Sound Collective</h1>
         <div class="controls">
-            <button id="play-stop-btn">Play</button>
-            <div class="control-group">
+            <button id="play-stop-btn"></button>
+            <div class="tempo-control-group">
                 <label for="tempo-slider">Tempo</label>
                 <input type="range" id="tempo-slider" min="60" max="240" value="120">
                 <span id="tempo-display">120 BPM</span>
             </div>
         </div>
 
-        <div class="main-content">
-            <div class="track-controls" id="track-controls"></div>
-            <div class="sequencer-grid" id="sequencer-grid"></div>
-        </div>
+        <div class="main-content" id="main-content"></div>
+        <div class="track-controls-container" id="track-controls-container"></div>
     </div>
 
     <script>
@@ -217,6 +251,15 @@
             const NUM_TRACKS = 4;
             const NUM_STEPS = 16;
             const defaultTrackNames = ["Kick", "Snare", "Hi-Hat", "Clap"];
+
+            const ICONS = {
+                play: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
+                stop: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="6" y="6" width="12" height="12"></rect></svg>`,
+                volume: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`,
+                filter: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>`,
+                upload: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
+                soundwave: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M2 10h3v4H2zm5-4h3v12H7zm5-6h3v20h-3zm5 4h3v12h-3zm5-4h3v4h-3z"/></svg>`
+            };
 
             let audioContext;
             let isInitialized = false;
@@ -234,10 +277,10 @@
             const playStopBtn = document.getElementById('play-stop-btn');
             const tempoSlider = document.getElementById('tempo-slider');
             const tempoDisplay = document.getElementById('tempo-display');
-            const trackControlsContainer = document.getElementById('track-controls');
-            const sequencerGridContainer = document.getElementById('sequencer-grid');
+            const mainContentContainer = document.getElementById('main-content');
+            const trackControlsContainer = document.getElementById('track-controls-container');
 
-            // --- Sound Synthesis Functions ---
+            // --- Sound Synthesis Functions (unchanged) ---
             async function createKick(context) {
                 const duration = 0.5;
                 const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
@@ -379,47 +422,61 @@
             }
 
             function createUI() {
-                for (let i = 0; i < NUM_TRACKS; i++) {
-                    const trackEl = document.createElement('div');
-                    trackEl.classList.add('track');
-                    trackEl.innerHTML = `
-                        <div class="track-label">
-                            <span id="track-name-${i}">${defaultTrackNames[i]}</span>
-                            <label class="load-button">Load
-                                <input type="file" class="load-sample-input" data-track-index="${i}" accept="audio/*">
-                            </label>
-                        </div>
-                        <div class="control-group">
-                            <label>Vol</label>
-                            <input type="range" class="volume-slider" data-track-index="${i}" min="0" max="1" step="0.01" value="${trackVolumes[i]}">
-                        </div>
-                        <div class="control-group">
-                            <label>Freq</label>
-                            <input type="range" class="filter-slider" data-track-index="${i}" min="100" max="20000" step="10" value="${trackFilters[i]}">
-                        </div>
-                        <div class="control-group">
-                            <label>Type</label>
-                            <select class="filter-type-select" data-track-index="${i}">
-                                <option value="lowpass" selected>Low-Pass</option>
-                                <option value="highpass">High-Pass</option>
-                            </select>
-                        </div>
-                    `;
-                    trackControlsContainer.appendChild(trackEl);
-                }
+                mainContentContainer.innerHTML = '';
+                trackControlsContainer.innerHTML = '';
 
                 for (let i = 0; i < NUM_TRACKS; i++) {
+                    // Create Track Header in the main grid
+                    const trackHeader = document.createElement('div');
+                    trackHeader.classList.add('track-header');
+                    trackHeader.innerHTML = `
+                        ${ICONS.soundwave}
+                        <span id="track-name-header-${i}">${defaultTrackNames[i]}</span>
+                    `;
+                    mainContentContainer.appendChild(trackHeader);
+
+                    // Create Sequencer Cells
                     for (let j = 0; j < NUM_STEPS; j++) {
                         const cell = document.createElement('div');
                         cell.classList.add('sequencer-cell');
                         cell.dataset.track = i;
                         cell.dataset.step = j;
-                        sequencerGridContainer.appendChild(cell);
+                        if (sequencerState[i][j]) cell.classList.add('on');
+                        mainContentContainer.appendChild(cell);
                     }
+
+                    // Create Track Control Panel
+                    const controlPanel = document.createElement('div');
+                    controlPanel.classList.add('track-control-panel');
+                    controlPanel.innerHTML = `
+                        <div class="track-label">
+                            <span id="track-name-control-${i}">${defaultTrackNames[i]}</span>
+                            <label class="load-button" title="Load custom sample">
+                                ${ICONS.upload}
+                                <input type="file" class="load-sample-input" data-track-index="${i}" accept="audio/*">
+                            </label>
+                        </div>
+                        <div class="control-group" title="Volume">
+                            ${ICONS.volume}
+                            <input type="range" class="volume-slider" data-track-index="${i}" min="0" max="1" step="0.01" value="${trackVolumes[i]}">
+                        </div>
+                        <div class="control-group" title="Filter Frequency">
+                            ${ICONS.filter}
+                            <input type="range" class="filter-slider" data-track-index="${i}" min="100" max="20000" step="10" value="${trackFilters[i]}">
+                        </div>
+                        <div class="control-group" title="Filter Type">
+                            <select class="filter-type-select" data-track-index="${i}">
+                                <option value="lowpass" ${trackFilterTypes[i] === 'lowpass' ? 'selected' : ''}>Low-Pass</option>
+                                <option value="highpass" ${trackFilterTypes[i] === 'highpass' ? 'selected' : ''}>High-Pass</option>
+                            </select>
+                        </div>
+                    `;
+                    trackControlsContainer.appendChild(controlPanel);
                 }
+                setupAllEventListeners();
             }
 
-            function setupEventListeners() {
+            function setupAllEventListeners() {
                 playStopBtn.addEventListener('click', handlePlayClick);
 
                 tempoSlider.addEventListener('input', (e) => {
@@ -432,7 +489,7 @@
                     }
                 });
 
-                sequencerGridContainer.addEventListener('click', (e) => {
+                mainContentContainer.addEventListener('click', (e) => {
                     if (e.target.classList.contains('sequencer-cell')) {
                         const track = parseInt(e.target.dataset.track, 10);
                         const step = parseInt(e.target.dataset.step, 10);
@@ -467,10 +524,20 @@
                 });
             }
 
+            function updatePlayButton(state) {
+                if (state === 'playing') {
+                    playStopBtn.innerHTML = `${ICONS.stop} Stop`;
+                } else if (state === 'stopped') {
+                    playStopBtn.innerHTML = `${ICONS.play} Play`;
+                } else if (state === 'loading') {
+                    playStopBtn.textContent = 'Loading...';
+                    playStopBtn.disabled = true;
+                }
+            }
+
             async function handlePlayClick() {
                 if (!isInitialized) {
-                    playStopBtn.disabled = true;
-                    playStopBtn.textContent = 'Loading...';
+                    updatePlayButton('loading');
                     initAudioContext();
                     await createDefaultSamples();
                     isInitialized = true;
@@ -490,7 +557,9 @@
                     try {
                         const buffer = await audioContext.decodeAudioData(e.target.result);
                         audioBuffers[trackIndex] = buffer;
-                        document.getElementById(`track-name-${trackIndex}`).textContent = file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name;
+                        const trackName = file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name;
+                        document.getElementById(`track-name-header-${trackIndex}`).textContent = trackName;
+                        document.getElementById(`track-name-control-${trackIndex}`).textContent = trackName;
                         console.log(`Sample loaded for track ${trackIndex + 1}`);
                     } catch (err) {
                         alert(`Error decoding audio file: ${err.message}`);
@@ -517,7 +586,7 @@
             }
 
             function scheduleNextStep() {
-                const lookahead = 0.1; // seconds
+                const lookahead = 0.1;
                 const scheduleTime = audioContext.currentTime + lookahead;
 
                 for (let track = 0; track < NUM_TRACKS; track++) {
@@ -528,9 +597,8 @@
             }
 
             function updateUIForStep() {
-                const prevStep = (currentStep === 0) ? NUM_STEPS - 1 : currentStep - 1;
-                document.querySelectorAll(`.sequencer-cell[data-step="${prevStep}"]`).forEach(cell => cell.classList.remove('current'));
-                document.querySelectorAll(`.sequencer-cell[data-step="${currentStep}"]`).forEach(cell => cell.classList.add('current'));
+                document.querySelectorAll('.sequencer-cell.current').forEach(cell => cell.classList.remove('current'));
+                document.querySelectorAll(`[data-step="${currentStep}"]`).forEach(cell => cell.classList.add('current'));
             }
 
             function nextStep() {
@@ -543,22 +611,21 @@
                 isPlaying = !isPlaying;
 
                 if (isPlaying) {
-                    playStopBtn.textContent = 'Stop';
+                    updatePlayButton('playing');
                     currentStep = 0;
                     const secondsPerStep = (60.0 / tempo) / 4;
                     nextStep();
                     scheduler = setInterval(nextStep, secondsPerStep * 1000);
                 } else {
-                    playStopBtn.textContent = 'Play';
+                    updatePlayButton('stopped');
                     clearInterval(scheduler);
-                    const lastStep = (currentStep === 0) ? NUM_STEPS - 1 : currentStep - 1;
-                    document.querySelectorAll(`.sequencer-cell[data-step="${lastStep}"]`).forEach(cell => cell.classList.remove('current'));
+                    document.querySelectorAll('.sequencer-cell.current').forEach(cell => cell.classList.remove('current'));
                 }
             }
 
             // --- Initialize ---
             createUI();
-            setupEventListeners();
+            updatePlayButton('stopped');
         });
     </script>
 
