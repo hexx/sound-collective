@@ -389,6 +389,14 @@
             const aiPromptInput = document.getElementById('ai-prompt-input');
             const aiSubmitBtn = document.getElementById('ai-submit-btn');
 
+            function pitchToFrequency(pitch) {
+                const noteNames = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+                const octave = parseInt(pitch.slice(-1), 10);
+                const note = pitch.slice(0, -1);
+                const midiNote = 12 * (octave + 1) + noteNames[note];
+                return 440 * Math.pow(2, (midiNote - 69) / 12);
+            }
+
             // --- Sound Synthesis Functions (unchanged) ---
             async function createKick(context) {
                 const duration = 0.5;
@@ -494,13 +502,13 @@
                 return await offlineCtx.startRendering();
             }
 
-            async function createSynthLead(context) {
+            async function createSynthLead(context, frequency = 440) {
                 const duration = 0.5;
                 const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
                 const osc = offlineCtx.createOscillator();
                 const gain = offlineCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(440, 0);
+                osc.frequency.setValueAtTime(frequency, 0);
                 gain.gain.setValueAtTime(0.5, 0);
                 gain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.4);
                 osc.connect(gain);
@@ -510,16 +518,16 @@
                 return await offlineCtx.startRendering();
             }
 
-            async function createSynthPad(context) {
+            async function createSynthPad(context, frequency = 220) {
                 const duration = 2.0;
                 const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
                 const osc1 = offlineCtx.createOscillator();
                 const osc2 = offlineCtx.createOscillator();
                 const gain = offlineCtx.createGain();
                 osc1.type = 'triangle';
-                osc1.frequency.setValueAtTime(220, 0);
+                osc1.frequency.setValueAtTime(frequency, 0);
                 osc2.type = 'sine';
-                osc2.frequency.setValueAtTime(220.5, 0); // Slightly detuned
+                osc2.frequency.setValueAtTime(frequency * 1.005, 0); // Slightly detuned
                 gain.gain.setValueAtTime(0.3, 0);
                 gain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 1.9);
                 osc1.connect(gain);
@@ -541,8 +549,8 @@
                         createSnare(audioContext),
                         createHiHat(audioContext),
                         createClap(audioContext),
-                        createSynthLead(audioContext),
-                        createSynthPad(audioContext)
+                        createSynthLead(audioContext, 440),
+                        createSynthPad(audioContext, 220)
                     ]);
                     audioBuffers[0] = kick;
                     audioBuffers[1] = snare;
@@ -764,7 +772,18 @@
                 aiSubmitBtn.textContent = 'Generating...';
 
                 const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                const systemPrompt = `You are an expert drum machine programmer. Your task is to generate a 16-step sequencer pattern based on the user's description. The application has 4 tracks: 'kick', 'snare', 'hiHat', and 'clap'. Please provide the output ONLY as a valid JSON object. The object must have keys named 'kick', 'snare', 'hiHat', and 'clap'. Each key's value must be an array of exactly 16 booleans (true for an active step, false for an inactive step). Do not include any other text, explanations, or markdown formatting in your response. Just the raw JSON. User's description: '${userPrompt}'`;
+                const systemPrompt = `You are an expert drum machine programmer and composer. Your task is to generate a 16-step sequencer pattern based on the user's description. The application has 6 tracks: 'kick', 'snare', 'hiHat', 'clap', 'lead', and 'pad'.
+
+Please provide the output ONLY as a valid JSON object. The object must have keys named 'kick', 'snare', 'hiHat', 'clap', 'lead', and 'pad'.
+
+- For 'kick', 'snare', 'hiHat', and 'clap', the value must be an array of exactly 16 booleans (true for an active step, false for an inactive step).
+- For 'lead' and 'pad', the value must be an array of objects, where each object has a 'step' (0-15) and a 'pitch' (e.g., 'C4', 'G#5'). An empty array means no notes.
+
+Example for a 'lead' track: "lead": [{"step": 0, "pitch": "C4"}, {"step": 4, "pitch": "E4"}, {"step": 8, "pitch": "G4"}]
+
+Do not include any other text, explanations, or markdown formatting in your response. Just the raw JSON.
+
+User's description: '${userPrompt}'`;
 
                 try {
                     const response = await fetch(API_ENDPOINT, {
@@ -798,7 +817,7 @@
 
                     const pattern = JSON.parse(cleanedJsonString);
 
-                    if (!pattern.kick || !pattern.snare || !pattern.hiHat || !pattern.clap) {
+                    if (!pattern.kick || !pattern.snare || !pattern.hiHat || !pattern.clap || !pattern.lead || !pattern.pad) {
                         throw new Error("The AI response was missing one or more required tracks.");
                     }
 
@@ -806,6 +825,22 @@
                     sequencerState[1] = pattern.snare;
                     sequencerState[2] = pattern.hiHat;
                     sequencerState[3] = pattern.clap;
+
+                    // Reset lead and pad tracks
+                    sequencerState[4] = Array(NUM_STEPS).fill(false);
+                    sequencerState[5] = Array(NUM_STEPS).fill(false);
+
+                    pattern.lead.forEach(note => {
+                        if (note.step >= 0 && note.step < NUM_STEPS) {
+                            sequencerState[4][note.step] = note.pitch;
+                        }
+                    });
+
+                    pattern.pad.forEach(note => {
+                        if (note.step >= 0 && note.step < NUM_STEPS) {
+                            sequencerState[5][note.step] = note.pitch;
+                        }
+                    });
 
                     updateGridFromState();
                     aiPromptContainer.style.display = 'none';
@@ -863,11 +898,22 @@
                 reader.readAsArrayBuffer(file);
             }
 
-            function playSound(trackIndex, time) {
+            async function playSound(trackIndex, time, pitch = null) {
                 if (!audioBuffers[trackIndex] || !audioContext) return;
 
+                let buffer = audioBuffers[trackIndex];
+
+                if (pitch && (trackIndex === 4 || trackIndex === 5)) {
+                    const frequency = pitchToFrequency(pitch);
+                    if (trackIndex === 4) {
+                        buffer = await createSynthLead(audioContext, frequency);
+                    } else {
+                        buffer = await createSynthPad(audioContext, frequency);
+                    }
+                }
+
                 const source = audioContext.createBufferSource();
-                source.buffer = audioBuffers[trackIndex];
+                source.buffer = buffer;
 
                 if (isSparklingMode) {
                     const cell = document.querySelector(`.sequencer-cell[data-track='${trackIndex}'][data-step='${currentStep}']`);
@@ -897,8 +943,11 @@
                 const scheduleTime = audioContext.currentTime + lookahead;
 
                 for (let track = 0; track < NUM_TRACKS; track++) {
-                    if (sequencerState[track][currentStep]) {
-                        playSound(track, scheduleTime);
+                    const pitch = sequencerState[track][currentStep];
+                    if (pitch) {
+                        (async () => {
+                            await playSound(track, scheduleTime, pitch);
+                        })();
                     }
                 }
             }

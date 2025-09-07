@@ -21,7 +21,7 @@ make all cells have the same design as row-odd
 
 The top and bottom appear stretched out, so make the track controls (on the left) shorter vertically and longer horizontally.
 
-the track controls (on the left) are too narrow and difficult to use - please reposition them lower down for easier access.Place an icon or something where the track controls (on the left) were previously located to make it more intuitive.
+the track controls (on the left) are too narrow and difficult to use - please reposition them lower down for easier access.Place an icon or something where the track controls (on aleft) were previously located to make it more intuitive.
 
 What features could we add to this application by leveraging the Gemini API?
 
@@ -36,5 +36,7 @@ Is it possible to add sound variations to the "sparkling" mode?
 Added sound variations to the "sparkling" mode.
 
 Made sound changes in "sparkling" mode more pronounced and added two new synth sounds.
+
+Updated AI pattern generation to support pitched instruments for the 'lead' and 'pad' tracks.
 
 Please make the sound changes more pronounced in the "sparkling" mode. Also, add some additional sounds.
