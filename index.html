@@ -774,10 +774,11 @@
                 const API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                 const systemPrompt = `You are an expert drum machine programmer and composer. Your task is to generate a 16-step sequencer pattern based on the user's description. The application has 6 tracks: 'kick', 'snare', 'hiHat', 'clap', 'lead', and 'pad'.
 
-Please provide the output ONLY as a valid JSON object. The object must have keys named 'kick', 'snare', 'hiHat', 'clap', 'lead', and 'pad'.
+Please provide the output ONLY as a valid JSON object. The object must have keys named 'kick', 'snare', 'hiHat', 'clap', 'lead', 'pad', and 'tempo'.
 
 - For 'kick', 'snare', 'hiHat', and 'clap', the value must be an array of exactly 16 booleans (true for an active step, false for an inactive step).
 - For 'lead' and 'pad', the value must be an array of objects, where each object has a 'step' (0-15) and a 'pitch' (e.g., 'C4', 'G#5'). An empty array means no notes.
+- For 'tempo', the value must be a number between 60 and 240.
 
 Example for a 'lead' track: "lead": [{"step": 0, "pitch": "C4"}, {"step": 4, "pitch": "E4"}, {"step": 8, "pitch": "G4"}]
 
@@ -817,8 +818,8 @@ User's description: '${userPrompt}'`;
 
                     const pattern = JSON.parse(cleanedJsonString);
 
-                    if (!pattern.kick || !pattern.snare || !pattern.hiHat || !pattern.clap || !pattern.lead || !pattern.pad) {
-                        throw new Error("The AI response was missing one or more required tracks.");
+                    if (!pattern.kick || !pattern.snare || !pattern.hiHat || !pattern.clap || !pattern.lead || !pattern.pad || !pattern.tempo) {
+                        throw new Error("The AI response was missing one or more required tracks or the tempo.");
                     }
 
                     sequencerState[0] = pattern.kick;
@@ -841,6 +842,10 @@ User's description: '${userPrompt}'`;
                             sequencerState[5][note.step] = note.pitch;
                         }
                     });
+
+                    tempo = pattern.tempo;
+                    tempoSlider.value = tempo;
+                    tempoDisplay.textContent = `${tempo} BPM`;
 
                     updateGridFromState();
                     aiPromptContainer.style.display = 'none';
