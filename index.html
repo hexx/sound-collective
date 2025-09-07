@@ -295,6 +295,28 @@
             color: var(--text-color);
         }
 
+        .sparkle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkle-anim 0.6s forwards;
+            box-shadow: 0 0 10px white, 0 0 20px white;
+        }
+
+        @keyframes sparkle-anim {
+            0% {
+                transform: scale(1) translate(0, 0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0) translate(var(--tx), var(--ty));
+                opacity: 0;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -304,6 +326,7 @@
         <div class="controls">
             <button id="play-stop-btn"></button>
             <button id="ai-generate-btn">Generate with AI ✨</button>
+            <button id="sparkling-mode-btn">Sparkling Mode OFF</button>
             <div class="tempo-control-group">
                 <label for="tempo-slider">Tempo</label>
                 <input type="range" id="tempo-slider" min="60" max="240" value="120">
@@ -351,6 +374,7 @@
             let isPlaying = false;
             let tempo = 120;
             let scheduler;
+            let isSparklingMode = false;
 
             const playStopBtn = document.getElementById('play-stop-btn');
             const tempoSlider = document.getElementById('tempo-slider');
@@ -358,6 +382,7 @@
             const mainContentContainer = document.getElementById('main-content');
             const trackControlsContainer = document.getElementById('track-controls-container');
             const aiGenerateBtn = document.getElementById('ai-generate-btn');
+            const sparklingModeBtn = document.getElementById('sparkling-mode-btn');
             const aiPromptContainer = document.getElementById('ai-prompt-container');
             const apiKeyInput = document.getElementById('api-key-input');
             const saveApiKeyBtn = document.getElementById('save-api-key-btn');
@@ -563,6 +588,12 @@
             function setupAllEventListeners() {
                 playStopBtn.addEventListener('click', handlePlayClick);
 
+                sparklingModeBtn.addEventListener('click', () => {
+                    isSparklingMode = !isSparklingMode;
+                    sparklingModeBtn.textContent = `Sparkling Mode ${isSparklingMode ? 'ON' : 'OFF'}`;
+                    sparklingModeBtn.style.backgroundColor = isSparklingMode ? '#1ed760' : 'var(--primary-color)';
+                });
+
                 aiGenerateBtn.addEventListener('click', () => {
                     const isHidden = aiPromptContainer.style.display === 'none';
                     aiPromptContainer.style.display = isHidden ? 'block' : 'none';
@@ -625,6 +656,42 @@
                         trackFilterTypes[trackIndex] = e.target.value;
                     });
                 });
+            }
+
+            function createSparkle(cell) {
+                const rect = cell.getBoundingClientRect();
+                const containerRect = document.body.getBoundingClientRect();
+                const colors = ['#FFD700', '#FF1493', '#00FFFF', '#ADFF2F', '#FFFFFF'];
+
+                for (let i = 0; i < 20; i++) { // Increased particle count
+                    const sparkle = document.createElement('div');
+                    sparkle.classList.add('sparkle');
+                    
+                    const x = rect.left - containerRect.left + rect.width / 2;
+                    const y = rect.top - containerRect.top + rect.height / 2;
+                    sparkle.style.left = `${x}px`;
+                    sparkle.style.top = `${y}px`;
+
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const size = Math.random() * 10 + 4; // Size variation
+                    sparkle.style.backgroundColor = color;
+                    sparkle.style.width = `${size}px`;
+                    sparkle.style.height = `${size}px`;
+                    sparkle.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+
+                    const angle = Math.random() * 2 * Math.PI;
+                    const distance = Math.random() * 50 + 30; // Increased distance
+                    const tx = `${Math.cos(angle) * distance}px`;
+                    const ty = `${Math.sin(angle) * distance}px`;
+
+                    sparkle.style.setProperty('--tx', tx);
+                    sparkle.style.setProperty('--ty', ty);
+
+                    document.body.appendChild(sparkle);
+                    sparkle.addEventListener('animationend', () => {
+                        sparkle.remove();
+                    });
+                }
             }
 
             function updateGridFromState() {
@@ -759,6 +826,18 @@
 
                 const source = audioContext.createBufferSource();
                 source.buffer = audioBuffers[trackIndex];
+
+                if (isSparklingMode) {
+                    const cell = document.querySelector(`.sequencer-cell[data-track='${trackIndex}'][data-step='${currentStep}']`);
+                    if(cell) createSparkle(cell);
+
+                    // Add sound variations for sparkling mode
+                    const playbackRate = 1 + (Math.random() - 0.5) * 0.2; // +/- 10%
+                    source.playbackRate.setValueAtTime(playbackRate, time);
+                    
+                    const detuneAmount = (Math.random() - 0.5) * 300; // +/- 150 cents
+                    source.detune.setValueAtTime(detuneAmount, time);
+                }
 
                 const filter = audioContext.createBiquadFilter();
                 filter.type = trackFilterTypes[trackIndex];

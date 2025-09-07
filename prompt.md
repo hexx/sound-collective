@@ -28,3 +28,9 @@ What features could we add to this application by leveraging the Gemini API?
 Try creating your own 1. AI-Powered Pattern Generation.
 
 Wouldn't allowing users to input their Gemini API Key and using https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro enable them to use the Gemini API?
+
+What would happen if we added a "sparkling" mode feature to this application?
+
+Is it possible to add sound variations to the "sparkling" mode?
+
+Added sound variations to the "sparkling" mode.
