@@ -41,6 +41,10 @@ Updated AI pattern generation to support pitched instruments for the 'lead' and 
 
 Updated AI pattern generation to allow the AI to specify the tempo.
 
+Dramatically changed the UI when in 'Sparkling Mode' for better visibility.
+
 Please make the sound changes more pronounced in the "sparkling" mode. Also, add some additional sounds.
 
 Please modify Generate with AI to also allow AI to specify TEMPO settings.
+
+When in Sparkling Mode, make the screen background and other elements change dramatically for better visibility.

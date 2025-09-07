@@ -317,6 +317,18 @@
             }
         }
 
+        .sparkling-mode-active {
+            --background-color: #000020;
+            --surface-color: #101030;
+            --primary-color: #FFD700;
+            --text-color: #FFFFFF;
+            --text-secondary-color: #aaa;
+            --grid-cell-color: #202040;
+            --grid-cell-active-color: #404060;
+            --grid-cell-on-color: var(--primary-color);
+            --row-alt-color: rgba(255, 255, 255, 0.05);
+        }
+
     </style>
 </head>
 <body>
@@ -642,6 +654,7 @@
                     isSparklingMode = !isSparklingMode;
                     sparklingModeBtn.textContent = `Sparkling Mode ${isSparklingMode ? 'ON' : 'OFF'}`;
                     sparklingModeBtn.style.backgroundColor = isSparklingMode ? '#1ed760' : 'var(--primary-color)';
+                    document.body.classList.toggle('sparkling-mode-active', isSparklingMode);
                 });
 
                 aiGenerateBtn.addEventListener('click', () => {
