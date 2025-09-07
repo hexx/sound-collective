@@ -349,9 +349,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const NUM_TRACKS = 4;
+            const NUM_TRACKS = 6;
             const NUM_STEPS = 16;
-            const defaultTrackNames = ["Kick", "Snare", "Hi-Hat", "Clap"];
+            const defaultTrackNames = ["Kick", "Snare", "Hi-Hat", "Clap", "Lead", "Pad"];
 
             const ICONS = {
                 play: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`, 
@@ -494,20 +494,62 @@
                 return await offlineCtx.startRendering();
             }
 
+            async function createSynthLead(context) {
+                const duration = 0.5;
+                const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
+                const osc = offlineCtx.createOscillator();
+                const gain = offlineCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(440, 0);
+                gain.gain.setValueAtTime(0.5, 0);
+                gain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(offlineCtx.destination);
+                osc.start(0);
+                osc.stop(offlineCtx.currentTime + 0.4);
+                return await offlineCtx.startRendering();
+            }
+
+            async function createSynthPad(context) {
+                const duration = 2.0;
+                const offlineCtx = new OfflineAudioContext(1, context.sampleRate * duration, context.sampleRate);
+                const osc1 = offlineCtx.createOscillator();
+                const osc2 = offlineCtx.createOscillator();
+                const gain = offlineCtx.createGain();
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(220, 0);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(220.5, 0); // Slightly detuned
+                gain.gain.setValueAtTime(0.3, 0);
+                gain.gain.exponentialRampToValueAtTime(0.01, offlineCtx.currentTime + 1.9);
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(offlineCtx.destination);
+                osc1.start(0);
+                osc2.start(0);
+                osc1.stop(offlineCtx.currentTime + 1.9);
+                osc2.stop(offlineCtx.currentTime + 1.9);
+                return await offlineCtx.startRendering();
+            }
+
             async function createDefaultSamples() {
                 if (!audioContext) return;
                 console.log("Creating default samples...");
                 try {
-                    const [kick, snare, hihat, clap] = await Promise.all([
+                    const [kick, snare, hihat, clap, lead, pad] = await Promise.all([
                         createKick(audioContext),
                         createSnare(audioContext),
                         createHiHat(audioContext),
-                        createClap(audioContext)
+                        createClap(audioContext),
+                        createSynthLead(audioContext),
+                        createSynthPad(audioContext)
                     ]);
                     audioBuffers[0] = kick;
                     audioBuffers[1] = snare;
                     audioBuffers[2] = hihat;
                     audioBuffers[3] = clap;
+                    audioBuffers[4] = lead;
+                    audioBuffers[5] = pad;
                     console.log("Default samples created.");
                 } catch (e) {
                     console.error("Failed to create default samples:", e);
@@ -832,10 +874,10 @@
                     if(cell) createSparkle(cell);
 
                     // Add sound variations for sparkling mode
-                    const playbackRate = 1 + (Math.random() - 0.5) * 0.2; // +/- 10%
+                    const playbackRate = 1 + (Math.random() - 0.5) * 0.4; // +/- 20%
                     source.playbackRate.setValueAtTime(playbackRate, time);
                     
-                    const detuneAmount = (Math.random() - 0.5) * 300; // +/- 150 cents
+                    const detuneAmount = (Math.random() - 0.5) * 600; // +/- 300 cents
                     source.detune.setValueAtTime(detuneAmount, time);
                 }
 

@@ -34,3 +34,7 @@ What would happen if we added a "sparkling" mode feature to this application?
 Is it possible to add sound variations to the "sparkling" mode?
 
 Added sound variations to the "sparkling" mode.
+
+Made sound changes in "sparkling" mode more pronounced and added two new synth sounds.
+
+Please make the sound changes more pronounced in the "sparkling" mode. Also, add some additional sounds.
